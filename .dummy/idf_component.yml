@@ -1,0 +1,19 @@
+dependencies:
+  # Required IDF version
+  idf: ">=5.1"
+  espressif/cmake_utilities:
+    version: "0.*"
+    rules:
+      - if: "target == esp32c2"
+  espressif/fb_gfx:
+    version: "master"
+    path: components/fb_gfx
+    git: https://github.com/espressif/esp32-arduino-lib-builder.git
+    require: public
+    rules:
+      - if: "target in [esp32, esp32s2, esp32s3, esp32p4]"
+  espressif/esp_matter:
+    # Arduino-ESP32 3.3.8 pins this exact release. Keeping the same constraint
+    # lets the component manager use one source tree for both dependencies.
+    version: "1.4.1"
+    require: public

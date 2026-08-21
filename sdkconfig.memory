@@ -1,0 +1,201 @@
+# Product-sized ESP-IDF/ESP-Matter configuration for a classic ESP32-WROOM.
+# This file is merged into PIOArduino's upstream sdkconfig by custom_sdkconfig.
+
+# ESP-Matter's dynamic endpoint table includes the root node plus the color
+# light and Music Sync plug, even though the root uses endpoint ID 0.
+# Bridge/aggregator support is never invoked.
+CONFIG_ESP_MATTER_ENABLE_DATA_MODEL=y
+CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=3
+CONFIG_ESP_MATTER_MAX_DEVICE_TYPE_COUNT=2
+# ESP-Matter 1.4.1 enforces a minimum scene-table capacity of 16.
+CONFIG_ESP_MATTER_SCENES_TABLE_SIZE=16
+CONFIG_ESP_MATTER_BINDING_TABLE_SIZE=4
+# CONFIG_ESP_MATTER_ENABLE_OPENTHREAD is not set
+
+# Matter/CHIP buffers and stacks. These values follow Espressif's documented
+# small-device profile; runtime stack high-water diagnostics remain enabled.
+CONFIG_CHIP_TASK_STACK_SIZE=6144
+CONFIG_MAX_EVENT_QUEUE_SIZE=20
+CONFIG_EVENT_LOGGING_CRIT_BUFFER_SIZE=256
+CONFIG_EVENT_LOGGING_INFO_BUFFER_SIZE=256
+CONFIG_EVENT_LOGGING_DEBUG_BUFFER_SIZE=256
+# CONFIG_CHIP_CONFIG_IM_PRETTY_PRINT is not set
+# ESP-Matter's full ESP-IDF mDNS backend removes and republishes services for
+# each IPv4/IPv6 transition. The CHIP minimal backend is purpose-built for
+# Matter DNS-SD and avoids those duplicate service-removal races.
+CONFIG_USE_MINIMAL_MDNS=y
+# Supply a real-time clock after networking comes up so restored CASE sessions
+# do not have to fall back to the persisted Last Known Good UTC timestamp.
+CONFIG_ENABLE_SNTP_TIME_SYNC=y
+# P-256 CASE setup on the original ESP32 can legitimately occupy the Matter
+# event task for several seconds even with hardware MPI enabled. Keep the
+# diagnostic useful for genuine stalls without reporting normal crypto work.
+CONFIG_DISPATCH_EVENT_LONG_DISPATCH_TIME_WARNING_THRESHOLD_MS=5000
+# CONFIG_ENABLE_WIFI_TELEMETRY is not set
+# Arduino does not use ESP Insights. Disabling its external log interception
+# also removes the log_printf wrapper and its diagnostics buffers.
+# CONFIG_ESP_INSIGHTS_ENABLED is not set
+# CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP is not set
+# CONFIG_DIAG_ENABLE_METRICS is not set
+# CONFIG_DIAG_ENABLE_VARIABLES is not set
+# CONFIG_TEST_EVENT_TRIGGER_ENABLED is not set
+
+# Keep BLE for Matter commissioning and Classic Bluetooth for the A2DP music
+# mode. The controller runs in dual mode, but A2DP is exposed only after Matter
+# commissioning completes.
+CONFIG_ENABLE_CHIPOBLE=y
+CONFIG_USE_BLE_ONLY_FOR_COMMISSIONING=y
+
+# Only one phone is ever connected. Keep A2DP and the BLE GATT server needed by
+# Matter; remove unrelated Classic profiles and BLE services.
+CONFIG_BT_ACL_CONNECTIONS=1
+# CONFIG_BT_MULTI_CONNECTION_ENBALE is not set
+CONFIG_BTDM_CTRL_BLE_MAX_CONN=1
+CONFIG_BTDM_CTRL_BR_EDR_MAX_ACL_CONN=1
+CONFIG_BTDM_CTRL_BR_EDR_MAX_SYNC_CONN=0
+# CONFIG_BT_AVRCP_ENABLED is not set
+# CONFIG_BT_AVRCP_CT_COVER_ART_ENABLED is not set
+# CONFIG_BT_SPP_ENABLED is not set
+# CONFIG_BT_HFP_ENABLE is not set
+# CONFIG_BT_HFP_CLIENT_ENABLE is not set
+# CONFIG_BT_HFP_AG_ENABLE is not set
+# CONFIG_BT_HFP_AUDIO_DATA_PATH_HCI is not set
+# CONFIG_BT_HFP_WBS_ENABLE is not set
+# CONFIG_BT_GOEPC_ENABLED is not set
+# CONFIG_BT_BLE_BLUFI_ENABLE is not set
+# CONFIG_BT_GATTC_ENABLE is not set
+# CONFIG_BLE_MESH is not set
+
+# Hardware high-water measurements with the A2DP sink initialized left at least
+# 6.6 KiB unused in each 8 KiB stack. Keep more than 2.5 KiB measured headroom
+# while returning 8 KiB of scarce internal DRAM to Matter packet processing.
+CONFIG_BT_BTC_TASK_STACK_SIZE=4096
+CONFIG_BT_BTU_TASK_STACK_SIZE=4096
+
+# Arduino and infrastructure task sizes. The sketch's Bluetooth initialization
+# runs on its own dedicated 4 KiB task, so loopTask has no deep startup path.
+CONFIG_ARDUINO_LOOP_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=3072
+CONFIG_ESP_TIMER_TASK_STACK_SIZE=2048
+CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=2048
+
+# No PSRAM exists. Explicitly disable the ESP32 Rev-1 PSRAM cache workaround.
+# PIOArduino's hybrid builder otherwise leaves the upstream workaround enabled
+# after turning SPIRAM off. That selects flash-resident libc memory routines;
+# ESP-IDF calls memset while the cache is disabled during early flash startup.
+# CONFIG_SPIRAM is not set
+# CONFIG_SPIRAM_CACHE_WORKAROUND is not set
+
+# Put safe implementation code in flash to reclaim internal IRAM while
+# retaining stack canaries/watchpoints and trace/high-water support.
+CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
+CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
+
+# Bound transient Wi-Fi allocations without reducing the driver's static RX
+# reserve used by Matter traffic.
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_MGMT_SBUF_NUM=16
+# CONFIG_ESP_WIFI_CSI_ENABLED is not set
+
+# Only clusters used by the root node, extended color light, plug, and Wi-Fi
+# diagnostics remain enabled. Mandatory clusters are intentionally not listed
+# here so they retain the upstream value.
+# CONFIG_SUPPORT_ACCOUNT_LOGIN_CLUSTER is not set
+# CONFIG_SUPPORT_ACTIVATED_CARBON_FILTER_MONITORING_CLUSTER is not set
+# CONFIG_SUPPORT_AIR_QUALITY_CLUSTER is not set
+# CONFIG_SUPPORT_APPLICATION_BASIC_CLUSTER is not set
+# CONFIG_SUPPORT_APPLICATION_LAUNCHER_CLUSTER is not set
+# CONFIG_SUPPORT_AUDIO_OUTPUT_CLUSTER is not set
+# Arduino's ESP-Matter client object always references BindingManager, even
+# when the application only exposes server endpoints.
+CONFIG_SUPPORT_BINDING_CLUSTER=y
+# CONFIG_SUPPORT_BOOLEAN_STATE_CONFIGURATION_CLUSTER is not set
+# CONFIG_SUPPORT_BRIDGED_DEVICE_BASIC_INFORMATION_CLUSTER is not set
+# CONFIG_SUPPORT_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_CARBON_MONOXIDE_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_CHANNEL_CLUSTER is not set
+# CONFIG_SUPPORT_CHIME_CLUSTER is not set
+# CONFIG_SUPPORT_COMMISSIONER_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_CONTENT_APP_OBSERVER_CLUSTER is not set
+# CONFIG_SUPPORT_CONTENT_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_CONTENT_LAUNCHER_CLUSTER is not set
+# CONFIG_SUPPORT_DEVICE_ENERGY_MANAGEMENT_CLUSTER is not set
+# CONFIG_SUPPORT_DEVICE_ENERGY_MANAGEMENT_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_DIAGNOSTIC_LOGS_CLUSTER is not set
+# CONFIG_SUPPORT_DISHWASHER_ALARM_CLUSTER is not set
+# CONFIG_SUPPORT_DISHWASHER_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_DOOR_LOCK_CLUSTER is not set
+# CONFIG_SUPPORT_ECOSYSTEM_INFORMATION_CLUSTER is not set
+# CONFIG_SUPPORT_ELECTRICAL_ENERGY_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_ELECTRICAL_POWER_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_ENERGY_EVSE_CLUSTER is not set
+# CONFIG_SUPPORT_ENERGY_EVSE_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_ENERGY_PREFERENCE_CLUSTER is not set
+# CONFIG_SUPPORT_ETHERNET_NETWORK_DIAGNOSTICS_CLUSTER is not set
+# CONFIG_SUPPORT_FAN_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_FAULT_INJECTION_CLUSTER is not set
+# CONFIG_SUPPORT_FIXED_LABEL_CLUSTER is not set
+# CONFIG_SUPPORT_FORMALDEHYDE_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_HEPA_FILTER_MONITORING_CLUSTER is not set
+# CONFIG_SUPPORT_ICD_MANAGEMENT_CLUSTER is not set
+# CONFIG_SUPPORT_KEYPAD_INPUT_CLUSTER is not set
+# CONFIG_SUPPORT_LAUNDRY_DRYER_CONTROLS_CLUSTER is not set
+# CONFIG_SUPPORT_LAUNDRY_WASHER_CONTROLS_CLUSTER is not set
+# CONFIG_SUPPORT_LAUNDRY_WASHER_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_LOCALIZATION_CONFIGURATION_CLUSTER is not set
+# CONFIG_SUPPORT_LOW_POWER_CLUSTER is not set
+# CONFIG_SUPPORT_MEDIA_INPUT_CLUSTER is not set
+# CONFIG_SUPPORT_MEDIA_PLAYBACK_CLUSTER is not set
+# CONFIG_SUPPORT_MESSAGES_CLUSTER is not set
+# CONFIG_SUPPORT_MICROWAVE_OVEN_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_MICROWAVE_OVEN_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_MODE_SELECT_CLUSTER is not set
+# CONFIG_SUPPORT_NITROGEN_DIOXIDE_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# PIOArduino force-links every Matter endpoint wrapper. Its occupancy wrapper
+# directly instantiates this server, so retain only this otherwise-unused
+# cluster to keep the framework archive link-safe.
+CONFIG_SUPPORT_OCCUPANCY_SENSING_CLUSTER=y
+# CONFIG_SUPPORT_OPERATIONAL_STATE_CLUSTER is not set
+# CONFIG_SUPPORT_OPERATIONAL_STATE_OVEN_CLUSTER is not set
+# CONFIG_SUPPORT_OPERATIONAL_STATE_RVC_CLUSTER is not set
+# CONFIG_SUPPORT_OTA_SOFTWARE_UPDATE_PROVIDER_CLUSTER is not set
+# CONFIG_SUPPORT_OTA_SOFTWARE_UPDATE_REQUESTOR_CLUSTER is not set
+# CONFIG_SUPPORT_OVEN_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_OZONE_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_PM10_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_PM1_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_PM2_5_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_POWER_SOURCE_CLUSTER is not set
+# CONFIG_SUPPORT_POWER_SOURCE_CONFIGURATION_CLUSTER is not set
+# CONFIG_SUPPORT_POWER_TOPOLOGY_CLUSTER is not set
+# CONFIG_SUPPORT_PUMP_CONFIGURATION_AND_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_RADON_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_REFRIGERATOR_ALARM_CLUSTER is not set
+# CONFIG_SUPPORT_REFRIGERATOR_AND_TEMPERATURE_CONTROLLED_CABINET_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_RVC_CLEAN_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_RVC_RUN_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_SAMPLE_MEI_CLUSTER is not set
+# CONFIG_SUPPORT_SERVICE_AREA_CLUSTER is not set
+# CONFIG_SUPPORT_SMOKE_CO_ALARM_CLUSTER is not set
+# CONFIG_SUPPORT_SOFTWARE_DIAGNOSTICS_CLUSTER is not set
+# CONFIG_SUPPORT_SWITCH_CLUSTER is not set
+# CONFIG_SUPPORT_TARGET_NAVIGATOR_CLUSTER is not set
+# CONFIG_SUPPORT_TEMPERATURE_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_THERMOSTAT_CLUSTER is not set
+# CONFIG_SUPPORT_THERMOSTAT_USER_INTERFACE_CONFIGURATION_CLUSTER is not set
+# CONFIG_SUPPORT_THREAD_BORDER_ROUTER_MANAGEMENT_CLUSTER is not set
+# CONFIG_SUPPORT_THREAD_NETWORK_DIAGNOSTICS_CLUSTER is not set
+# CONFIG_SUPPORT_THREAD_NETWORK_DIRECTORY_CLUSTER is not set
+# CONFIG_SUPPORT_TIME_FORMAT_LOCALIZATION_CLUSTER is not set
+# CONFIG_SUPPORT_TIME_SYNCHRONIZATION_CLUSTER is not set
+# CONFIG_SUPPORT_TIMER_CLUSTER is not set
+# CONFIG_SUPPORT_TVOC_CONCENTRATION_MEASUREMENT_CLUSTER is not set
+# CONFIG_SUPPORT_UNIT_TESTING_CLUSTER is not set
+# CONFIG_SUPPORT_USER_LABEL_CLUSTER is not set
+# CONFIG_SUPPORT_VALVE_CONFIGURATION_AND_CONTROL_CLUSTER is not set
+# CONFIG_SUPPORT_WAKE_ON_LAN_CLUSTER is not set
+# CONFIG_SUPPORT_WATER_HEATER_MANAGEMENT_CLUSTER is not set
+# CONFIG_SUPPORT_WATER_HEATER_MODE_CLUSTER is not set
+# CONFIG_SUPPORT_WIFI_NETWORK_MANAGEMENT_CLUSTER is not set
+# CONFIG_SUPPORT_WINDOW_COVERING_CLUSTER is not set
